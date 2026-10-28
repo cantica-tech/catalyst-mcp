@@ -97,7 +97,11 @@ tests/                 unit tests with the provider mocked; one Keycloak testcon
 3. The auth layer (`auth/`): actor resolution (session, system account, HTTP token, a watch's pinned identity),
    `permissions.py` with `DenyAll`, the gate and its audit log, the HTTP token verifier — done (REQ-000002). The
    services require an `AuthorizedAction` as they land; wiring the verifier into the HTTP transport is step 7.
-4. The criterion service, on the stub schema.
+4. The criterion service (`criterion/`), on the stub schema — done (REQ-000003). The owner's decisions of
+   2026-10-29: the group last and safe to repeat (catalyst-users never deletes a group); a criterion without a
+   repository gets a new one under `CATALYST_MCP_PROJECTS_ROOT`; the rules JSON is kept in the criterion
+   (`catalyst-mcp/criterion.json`), not mapped to catalyst rules; the module is `CATALYST_MCP_CRITERION_MODULE`.
+   Members are refused for a criterion not served through `catalyst serve`: catalyst records members only there.
 5. The watcher and git diff, authorizing through the gate.
 6. The templates loader, format-agnostic until the schema lands.
 7. The final tool wiring.
