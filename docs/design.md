@@ -91,7 +91,9 @@ tests/                 unit tests with the provider mocked; one Keycloak testcon
 ## Implementation
 
 1. Settings and the server skeleton, every tool's signature — done in 0.1.0.
-2. The catalyst-users wrapper (generic directory operations).
+2. The catalyst-users wrapper (`iam/`): people, roles, criteria and their members, off the event loop — done
+   (REQ-000001). A criterion's membership is only read there: catalyst changes it and records each change.
+   catalyst-users cannot change a person's email or name yet, so `update_user` can only enable or disable.
 3. The auth layer: actor resolution, `permissions.py` with `DenyAll`, the gate and its audit log.
 4. The criterion service, on the stub schema.
 5. The watcher and git diff, authorizing through the gate.
