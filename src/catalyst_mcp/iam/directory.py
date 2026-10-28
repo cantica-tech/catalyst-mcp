@@ -15,6 +15,7 @@ __all__ = [
     "IamConflictError",
     "IamError",
     "IamNotFoundError",
+    "IamNotLoggedInError",
     "Identity",
     "IdentityDirectory",
     "Person",
@@ -50,6 +51,10 @@ class IamError(Exception):
         self.operation = operation
         self.status = status
         super().__init__(f"{operation}: {message}")
+
+
+class IamNotLoggedInError(IamError):
+    """No one is logged in to the provider on this machine."""
 
 
 class IamNotFoundError(IamError):

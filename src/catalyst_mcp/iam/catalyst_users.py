@@ -13,10 +13,19 @@ from typing import Any, TypeVar
 
 import anyio.to_thread
 from catalyst_users import config
-from catalyst_users.errors import AdminError, CatalystUsersError, NotFoundError
+from catalyst_users.errors import AdminError, CatalystUsersError, NotFoundError, NotLoggedInError
 from catalyst_users.provider import Provider, from_pointer
 
-from catalyst_mcp.iam.directory import IamConflictError, IamError, IamNotFoundError, Identity, Person, Registered, Role
+from catalyst_mcp.iam.directory import (
+    IamConflictError,
+    IamError,
+    IamNotFoundError,
+    IamNotLoggedInError,
+    Identity,
+    Person,
+    Registered,
+    Role,
+)
 from catalyst_mcp.settings import Settings
 
 T = TypeVar("T")
@@ -69,6 +78,8 @@ class CatalystUsersDirectory:
         except AdminError as err:  # NotFoundError included: the admin API answers a missing role with a plain 404
             kind = {NOT_FOUND: IamNotFoundError, CONFLICT: IamConflictError}.get(err.status, IamError)
             raise kind(operation, str(err), err.status) from err
+        except NotLoggedInError as err:
+            raise IamNotLoggedInError(operation, str(err)) from err
         except CatalystUsersError as err:
             raise IamError(operation, str(err)) from err
 

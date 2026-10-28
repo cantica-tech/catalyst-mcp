@@ -94,7 +94,9 @@ tests/                 unit tests with the provider mocked; one Keycloak testcon
 2. The catalyst-users wrapper (`iam/`): people, roles, criteria and their members, off the event loop — done
    (REQ-000001). A criterion's membership is only read there: catalyst changes it and records each change.
    catalyst-users cannot change a person's email or name yet, so `update_user` can only enable or disable.
-3. The auth layer: actor resolution, `permissions.py` with `DenyAll`, the gate and its audit log.
+3. The auth layer (`auth/`): actor resolution (session, system account, HTTP token, a watch's pinned identity),
+   `permissions.py` with `DenyAll`, the gate and its audit log, the HTTP token verifier — done (REQ-000002). The
+   services require an `AuthorizedAction` as they land; wiring the verifier into the HTTP transport is step 7.
 4. The criterion service, on the stub schema.
 5. The watcher and git diff, authorizing through the gate.
 6. The templates loader, format-agnostic until the schema lands.
