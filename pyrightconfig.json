@@ -1,0 +1,5 @@
+{
+  "extends": "./.standards/pyright.json",
+  "include": ["."],
+  "exclude": ["**/node_modules", "**/.venv", "dist", "out"]
+}
