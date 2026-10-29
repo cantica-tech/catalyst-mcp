@@ -21,7 +21,7 @@ from typing import Any
 from catalyst_mcp import log
 from catalyst_mcp.auth import Action, AuthorizedAction
 from catalyst_mcp.criterion.catalyst_cli import CatalystCli
-from catalyst_mcp.criterion.schema import CriterionSchema, current_schema
+from catalyst_mcp.criterion.schema import CriterionSchema, current_schema, schema_named
 from catalyst_mcp.iam import IdentityDirectory
 from catalyst_mcp.settings import Settings
 
@@ -126,13 +126,13 @@ class CriterionService:
     ) -> CriterionCreated:
         authorized.require(Action.CRITERION_CREATE, name)
         document = {"id": name, "name": name, "rules": rules}
-        self._validate(document, owner, users)
+        home = self.settings.criterion_home(name)
+        self._validate(document, owner, users, home)
         pointer = _read_toml(repo / POINTER)
         if users and pointer.get("share") != "serve":
             raise InvalidCriterionError(
                 [f"users: {name} is not served through catalyst serve, so it has admins only; add members once it is"]
             )
-        home = self.settings.criterion_home(name)
         stored, grouped = await self._existing(repo, name, owner, document, pointer, home, new_repo)
 
         made: list[str] = []
@@ -178,8 +178,10 @@ class CriterionService:
         )
         return CriterionCreated(name, repo, home, owner, tuple(made), tuple(added))
 
-    def _validate(self, document: dict[str, Any], owner: str, users: Sequence[str]) -> None:
+    def _validate(self, document: dict[str, Any], owner: str, users: Sequence[str], home: Path) -> None:
         errors = self.schema.validate(document)
+        if errors and self._kept_under_earlier_schema(home, document):
+            errors = []  # a criterion kept under an earlier version stays valid (mcp-CRIT-000001)
         if not owner.strip():
             errors.append("owner: empty")
         if any(not u.strip() for u in users):
@@ -214,6 +216,16 @@ class CriterionService:
         if stored is not None and stored != document:
             raise CriterionExistsError(f"the criterion {name} exists with other rules")
         return stored, group is not None
+
+    def _kept_under_earlier_schema(self, home: Path, document: dict[str, Any]) -> bool:
+        """This very document is already kept, under a schema version that accepts it."""
+        path = home / RULES_FILE
+        if not path.is_file():
+            return False
+        kept = json.loads(path.read_text(encoding="utf-8"))
+        schema = schema_named(kept.get("$schema"))
+        same = {k: kept.get(k) for k in ("id", "name", "rules")} == document
+        return same and schema is not None and schema.id != self.schema.id and not schema.validate(document)
 
     @staticmethod
     def _stored(home: Path) -> dict[str, Any] | None:

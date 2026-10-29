@@ -233,12 +233,12 @@ async def test_deny_all_refuses_every_write(tmp_path: Path) -> None:
 async def test_an_allowed_create_reaches_the_service(tmp_path: Path) -> None:
     shared = services(tmp_path)
     app = build(shared.settings, shared)
-    made = await call(app, "create_criterion", {"name": "c1", "rules": {"a": 1}, "owner": "alice"})
+    made = await call(app, "create_criterion", {"name": "c1", "rules": {"branches": ["main"]}, "owner": "alice"})
     assert made["made"] == ["repository", "deployment", "rules", "group"] and not made["unchanged"]
     templated = await call(app, "create_from_template", {"name": "blank", "params": {"name": "c2"}})
     assert templated["template"] == "blank@1.0.0" and templated["owner"] == "alice"
     with pytest.raises(ToolError, match="create_criterion: "):
-        await call(app, "create_criterion", {"name": "c1", "rules": {"a": 2}, "owner": "alice"})
+        await call(app, "create_criterion", {"name": "c1", "rules": {"branches": ["dev"]}, "owner": "alice"})
     assert asked(shared) == [
         (Action.CRITERION_CREATE, "c1"),
         (Action.CRITERION_CREATE, "c2"),
