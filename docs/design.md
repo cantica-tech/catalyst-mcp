@@ -23,7 +23,9 @@ authorization gate every write goes through, its audit log, and the tool surface
   mutating service method requires one. The type makes a bypass impossible to write; a test also scans the services
   for writes that skip it.
 - **Deny by default.** `auth/permissions.py` defines `Permissions.can(actor, action, criterion_id) -> Decision`; the
-  default is `DenyAll` until the real role mapping arrives. With it, no criterion write can succeed — intended.
+  default is `RoleMapping` (mcp-AUTHZ-000005, the owner's decision of 2026-10-29): the realm role `catalyst-admin`
+  creates criteria and manages people and roles; a criterion's admins, asked of the identity provider at the moment
+  of the decision, update it and start and stop its watches. Anything else is refused.
 - Every decision is logged: `authz.decision` with `actor` (issuer and subject), `criterion`, `action`, `decision`,
   `reason`. Logs are redacted (`log.py`): no token, secret or password is ever written.
 - **The actor.** Over stdio, the identity catalyst-users says is logged in, else the machine's system account under
@@ -61,8 +63,8 @@ same owner changes nothing; with another owner it raises `CriterionExists`.
 
 - The criterion JSON schema: `criterion/schema.py` holds a `CriterionSchema` protocol and a stub (`id`, `name`,
   `rules: dict`); nothing else assumes its shape.
-- The Keycloak roles and their mapping: `auth/permissions.py`, `DenyAll` until then. The likely source is
-  catalyst-users' `keycloak/realm-catalyst.json` and `catalyst-users roles provision`; to be confirmed.
+- The Keycloak roles and their mapping — given 2026-10-29: `RoleMapping` (REQ-000007), over the realm's existing
+  `catalyst-admin` role and catalyst-users' criterion admins.
 
 ## The knowledge-base server (to be detailed)
 
@@ -92,7 +94,7 @@ src/catalyst_mcp/
   settings.py          CATALYST_MCP_* (pydantic-settings)
   log.py               structured, redacted logging on standard error
   tools/               thin tool functions: watch, criteria, templates, users
-  auth/                actor.py, permissions.py (DenyAll), gate.py
+  auth/                actor.py, permissions.py (RoleMapping, StdioOnly, DenyAll), gate.py
   iam/                 the catalyst-users wrapper (async over its standard-library core)
   criterion/           schema.py (stub), service.py, catalyst_cli.py
   watch/               manager.py, triggers.py, diff.py

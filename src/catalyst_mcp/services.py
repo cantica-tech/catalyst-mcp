@@ -15,9 +15,9 @@ from catalyst_mcp.auth import (
     Action,
     ActorResolver,
     AuthorizedAction,
-    DenyAll,
     Gate,
     Permissions,
+    RoleMapping,
     SessionResolver,
     StdioOnly,
     TokenResolver,
@@ -51,7 +51,7 @@ class Services:
         cli: CatalystCli | None = None,
     ) -> Services:
         directory = directory or CatalystUsersDirectory.from_settings(settings)
-        gate = Gate(StdioOnly(permissions or DenyAll(), settings.transport))
+        gate = Gate(StdioOnly(permissions or RoleMapping(directory), settings.transport))
         resolver = resolver or _resolver(settings, directory)
         cli = cli or CatalystCli.from_settings(settings)
         # a watch triggers outside any request: the identity verified then is this machine's session's

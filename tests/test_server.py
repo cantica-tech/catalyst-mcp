@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -8,7 +9,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 
 from catalyst_mcp import log
-from catalyst_mcp.auth import Action, Actor, Decision, DenyAll, StdioOnly
+from catalyst_mcp.auth import Action, Actor, Decision, DenyAll, RoleMapping, StdioOnly
 from catalyst_mcp.auth.token import CatalystUsersTokenVerifier
 from catalyst_mcp.criterion import CatalystCliError
 from catalyst_mcp.iam import IamConflictError, Person, Registered
@@ -221,7 +222,7 @@ async def test_a_refused_write_calls_nothing(tmp_path: Path, name: str) -> None:
     assert shared.cli.calls == []  # type: ignore[attr-defined]
 
 
-async def test_by_default_every_write_is_refused(tmp_path: Path) -> None:
+async def test_deny_all_refuses_every_write(tmp_path: Path) -> None:
     shared = services(tmp_path, DenyAll())
     app = build(shared.settings, shared)
     for name in WRITES:
@@ -366,3 +367,37 @@ def test_the_command_line_wins_over_the_environment(monkeypatch: pytest.MonkeyPa
     assert settings.transport == "streamable-http"
     assert settings.http_port == 9100
     assert settings.http_host == "127.0.0.1"
+
+
+# --- the roles mapping through the tools (mcp-AUTHZ-000005) ----------------------------------------------------
+
+
+async def test_a_catalyst_admin_creates_then_watches_as_its_admin(tmp_path: Path) -> None:
+    admin = replace(ALICE, roles=("catalyst-admin",))
+
+    class Admin:
+        async def resolve(self) -> Actor:
+            return admin
+
+    settings = Settings(projects_root=tmp_path / "projects", catalyst_home=tmp_path / "home")
+    directory = Directory()
+    shared = Services.from_settings(
+        settings,
+        directory=directory,  # type: ignore[arg-type]
+        resolver=Admin(),
+        cli=FakeCli(settings),  # type: ignore[arg-type]
+    )
+    app = build(settings, shared)
+    with pytest.raises(ToolError, match="criterion c1 has no group in the identity provider"):
+        await call(app, "start_watch", {"repo_path": str(tmp_path), "criterion_id": "c1"})
+    made = await call(app, "create_criterion", {"name": "c1", "rules": {}, "owner": "alice"})
+    assert "group" in made["made"] and directory.groups["c1"] == ["alice"]
+    repo = settings.projects_root / "c1"
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "chore: catalyst")
+    started = await call(app, "start_watch", {"repo_path": str(repo), "criterion_id": "c1"})
+    assert started["started"]
+    assert (await call(app, "stop_watch", {"criterion_id": "c1"}))["stopped"]
+    with pytest.raises(ToolError, match="needs the realm role catalyst-admin"):
+        refusing = services(tmp_path, RoleMapping(directory))  # type: ignore[arg-type]
+        await build(settings, refusing).call_tool("register_user", {"username": "x"})
