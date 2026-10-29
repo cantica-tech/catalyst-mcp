@@ -7,9 +7,11 @@ the user's assent (catalyst's L3): catalyst-mcp never answers it with `--yes`, s
 from __future__ import annotations
 
 import asyncio
+import json
 import os
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Any
 
 from catalyst_mcp import log
 from catalyst_mcp.settings import Settings
@@ -37,8 +39,9 @@ class CatalystCli:
         env = {**os.environ, "CATALYST_HOME": str(settings.catalyst_home)} if settings.catalyst_home else None
         return cls(settings.catalyst_cli, env)
 
-    async def run(self, cwd: Path, *args: str) -> str:
-        """Run `catalyst <args>` in `cwd`; its standard output, or `CatalystCliError`."""
+    async def run(self, cwd: Path, *args: str, ok: tuple[int, ...] = (0,)) -> str:
+        """Run `catalyst <args>` in `cwd`; its standard output when it exits with one of `ok`, else
+        `CatalystCliError`."""
         proc = await asyncio.create_subprocess_exec(
             *self.argv,
             *args,
@@ -49,7 +52,7 @@ class CatalystCli:
             stderr=asyncio.subprocess.PIPE,
         )
         out, err = await proc.communicate()
-        if proc.returncode != 0:
+        if proc.returncode not in ok:
             raise CatalystCliError(args[0] if args else "", proc.returncode or 1, err.decode(errors="replace"))
         return out.decode(errors="replace")
 
@@ -82,3 +85,20 @@ class CatalystCli:
 
     async def members_add(self, repo: Path, username: str, reason: str) -> str:
         return await self.run(repo, "members", "add", username, "--reason", reason)
+
+    async def unrecorded(self, repo: Path, revisions: str) -> list[dict[str, Any]]:
+        """The commits in `revisions` with changes not in the journal: `commit`, `author`, `subject`, `files`. Exit 1
+        with a list is catalyst reporting them at error level: still the answer."""
+        out = await self.run(repo, "unrecorded", "--json", revisions, ok=(0, 1))
+        try:
+            found = json.loads(out)
+        except json.JSONDecodeError as err:
+            raise CatalystCliError("unrecorded", 1, f"not a JSON list: {out}") from err
+        if not isinstance(found, list):
+            raise CatalystCliError("unrecorded", 1, f"not a JSON list: {out}")
+        return found
+
+    async def adopt(self, repo: Path, commit: str, *, intent: str, actor: str) -> list[dict[str, Any]]:
+        """Adopt one commit's unrecorded changes into the journal, as `actor`; the entries written."""
+        out = await self.run(repo, "journal", "adopt", commit, "--intent", intent, "--as", actor, "--json")
+        return [json.loads(line) for line in out.splitlines() if line.startswith("{")]

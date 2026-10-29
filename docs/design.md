@@ -36,8 +36,16 @@ authorization gate every write goes through, its audit log, and the tool surface
 - `file_change`: `watchfiles` on the working tree (`.git/` and ignored files excluded), debounced.
 - `commit`: `watchfiles` on `.git/HEAD` and `.git/refs/`, so nothing is installed in the project (a project holds
   only `catalyst.toml`). A pre-push gate, if wanted, is a user-level `core.hooksPath`, wired once per machine.
-- On trigger: diff from the last processed commit (git command line, async) → `authorize` → update through the
-  catalyst command line → audit record.
+- On a commit: the diff from the last processed commit (git, async) and catalyst's list of the commits since then
+  with changes not in the journal (`catalyst unrecorded`), kept to those made here and not yet pushed (a commit a
+  remote-tracking branch holds came from elsewhere) → `authorize` `criterion.update` as the identity verified now,
+  which must be the one that started the watch → `catalyst journal adopt --as <that identity>`, the commit's subject
+  as the intent → a `watch.trigger` record. Refused or failed, nothing is written and the next trigger tries again; a
+  commit catalyst already records needs no update and no authorization.
+- On a saved file: the working tree's diff against `HEAD` is refreshed (shown by `list_watches`); nothing is written,
+  since catalyst journals commits, not uncommitted work.
+- A watch writes only the local journal: it never pushes and never answers catalyst's request for assent. Watches
+  live as long as the server.
 
 ## Atomic create
 
@@ -102,7 +110,10 @@ tests/                 unit tests with the provider mocked; one Keycloak testcon
    repository gets a new one under `CATALYST_MCP_PROJECTS_ROOT`; the rules JSON is kept in the criterion
    (`catalyst-mcp/criterion.json`), not mapped to catalyst rules; the module is `CATALYST_MCP_CRITERION_MODULE`.
    Members are refused for a criterion not served through `catalyst serve`: catalyst records members only there.
-5. The watcher and git diff, authorizing through the gate.
+5. The watcher and git diff, authorizing through the gate — done (REQ-000004). The owner's decisions of
+   2026-10-29: a commit trigger adopts as the verified actor; a file-change trigger refreshes the diff and writes
+   nothing. Until catalyst BUG-000044 is fixed, catalyst records `--as` as given: catalyst-mcp passes only the
+   identity the gate verified.
 6. The templates loader, format-agnostic until the schema lands.
 7. The final tool wiring.
 
