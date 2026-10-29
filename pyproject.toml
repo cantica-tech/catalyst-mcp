@@ -1,6 +1,6 @@
 [project]
 name = "catalyst-mcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "An MCP server that keeps catalyst criteria in step with their git repositories: watchers, criteria, templates and users, every write authorized against the actor's identity"
 readme = "README.md"
 license = "Apache-2.0"
@@ -9,7 +9,9 @@ authors = [
 ]
 requires-python = ">=3.11,<3.14"
 dependencies = [
+    "anyio>=4.5",
     "catalyst-users @ git+https://github.com/cantica-tech/catalyst-users@0.7.0",
+    "jsonschema>=4.23",
     "mcp>=2.3,<3",
     "pydantic>=2.11",
     "pydantic-settings>=2.6",

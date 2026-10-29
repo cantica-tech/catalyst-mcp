@@ -65,9 +65,24 @@ class ConsoleFormatter(logging.Formatter):
         return f"{line}\n{redact(self.formatException(record.exc_info))}" if record.exc_info else line
 
 
+class StderrHandler(logging.StreamHandler):
+    """Writes to whatever `sys.stderr` is when a record is written, not when the handler was made."""
+
+    def __init__(self) -> None:
+        super().__init__(sys.stderr)
+
+    @property
+    def stream(self) -> Any:
+        return sys.stderr
+
+    @stream.setter
+    def stream(self, _value: Any) -> None:
+        pass
+
+
 def configure(level: LogLevel = "INFO", fmt: LogFormat = "json") -> None:
     """Send catalyst-mcp's records to standard error, replacing any handler an earlier call set."""
-    handler = logging.StreamHandler(sys.stderr)
+    handler = StderrHandler()
     handler.setFormatter(JsonFormatter() if fmt == "json" else ConsoleFormatter())
     logger = logging.getLogger(ROOT)
     logger.handlers[:] = [handler]

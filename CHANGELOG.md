@@ -1,0 +1,24 @@
+# Changelog
+
+## 0.2.0 — 2026-10-30
+
+The first working release. Every tool works over stdio; over streamable HTTP the server only reads.
+
+- Watches (REQ-000004): a commit made by hand and not yet pushed is adopted into the criterion's journal as the
+  identity that started the watch; a saved file refreshes the working-tree diff and writes nothing.
+- Criteria (REQ-000003): `create_criterion` and `create_criterion_from_repo`, validated first, their local steps
+  undone on failure, the Keycloak group last and safe to repeat.
+- Templates (REQ-000005): a checked, versioned catalog that fills in `create_criterion`'s arguments; ships `blank`
+  1.0.0.
+- People (REQ-000001, REQ-000006): register, enable or disable, grant realm roles, list and read, through
+  catalyst-users.
+- Authorization (REQ-000002, REQ-000006, REQ-000007): every write through one gate, every decision logged; the realm
+  role `catalyst-admin` creates criteria and manages people, a criterion's admins update and watch it; read-only over
+  HTTP, where catalyst would sign as the server.
+- One setting finds catalyst (REQ-000008): `CATALYST_MCP_CATALYST_ROOT`; a new criterion signs through
+  catalyst-users' issuer.
+- Fixed BUG-000001: a repeated create reported the group as made when catalyst-users only refreshed it.
+
+## 0.1.0 — 2026-10-28
+
+The skeleton: settings, the server over stdio or streamable HTTP, and every tool declared.
