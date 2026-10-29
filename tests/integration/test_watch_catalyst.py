@@ -1,5 +1,5 @@
 """A watch adopting a hand-made commit with the real catalyst command line, in a throwaway catalyst home. Opt-in, as
-`test_criterion_catalyst.py`: CATALYST_MCP_IT_CATALYST and CATALYST_MCP_IT_MODULE_DIR."""
+`test_criterion_catalyst.py`: CATALYST_MCP_IT_CATALYST."""
 
 import os
 import subprocess
@@ -18,11 +18,10 @@ from test_criterion import ALICE, Allow, FakeDirectory, authorized
 from test_watch import Fixed, commit, git
 
 CATALYST = os.environ.get("CATALYST_MCP_IT_CATALYST")
-MODULE_DIR = os.environ.get("CATALYST_MCP_IT_MODULE_DIR")
 
 pytestmark = [
     pytest.mark.integration,
-    pytest.mark.skipif(not (CATALYST and MODULE_DIR), reason="needs CATALYST_MCP_IT_CATALYST and _MODULE_DIR"),
+    pytest.mark.skipif(not CATALYST, reason="needs CATALYST_MCP_IT_CATALYST"),
 ]
 
 
@@ -30,12 +29,9 @@ async def test_a_watch_adopts_a_hand_made_commit_as_its_actor(tmp_path: Path, mo
     catalyst = Path(CATALYST or "")
     monkeypatch.setenv("CATALYST_USERS_HOME", str(Path.home() / ".catalyst" / "users"))
     settings = Settings(
-        catalyst_cli=[sys.executable, str(catalyst / "dist" / "catalyst.pyz")],
+        catalyst_root=catalyst,
         catalyst_home=tmp_path / "home",
         projects_root=tmp_path / "projects",
-        catalyst_kernel=catalyst / "framework" / "kernel",
-        criterion_module_dir=Path(MODULE_DIR or ""),
-        identity_issuer=os.environ.get("CATALYST_MCP_IT_ISSUER", "http://localhost:8080/realms/catalyst"),
         watch_debounce_ms=50,
     )
     cli = CatalystCli.from_settings(settings)

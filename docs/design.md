@@ -59,6 +59,13 @@ Validate the rules (`criterion/schema.py`) → create the criterion's group → 
 members. Each step registers an undo, and a failure runs them in reverse. Creating a criterion that exists with the
 same owner changes nothing; with another owner it raises `CriterionExists`.
 
+## Finding catalyst (2026-10-29)
+
+`catalyst init` runs only from catalyst's `catalyst.pyz` (the `~/.catalyst/bin` launcher runs a project's own
+catalyst, and a new repository has none), needs the kernel and the module named, and signs as the system account
+unless told the issuer. One setting, `CATALYST_MCP_CATALYST_ROOT`, gives the first three; the issuer is catalyst-users'
+own (mcp-ARCH-000003, REQ-000008). Found in the first live trial.
+
 ## Pending inputs (not invented)
 
 - The criterion JSON schema: `criterion/schema.py` holds a `CriterionSchema` protocol and a stub (`id`, `name`,

@@ -151,7 +151,7 @@ class CriterionService:
                     kernel=self.settings.catalyst_kernel,
                     module_dir=self.settings.criterion_module_dir,
                     agent=self.settings.criterion_agent,
-                    identity_issuer=self.settings.identity_issuer,
+                    identity_issuer=self.settings.signing_issuer(),
                 )
                 made.append("deployment")
                 undo.append(("deployment", lambda: self._undeploy(repo, home, parent_existed)))

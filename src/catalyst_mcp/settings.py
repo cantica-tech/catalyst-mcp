@@ -4,15 +4,22 @@ The Keycloak settings are overrides. Unset, catalyst-users' own settings decide 
 `catalyst-users setup`), so a machine catalyst already signs on needs none of them. catalyst-users holds no admin
 secret and acts with the caller's own token; the one secret here is the API client's, which the HTTP transport
 needs to introspect a caller's token.
+
+catalyst is found from one setting (mcp-ARCH-000003): `CATALYST_MCP_CATALYST_ROOT`, a catalyst checkout or release,
+gives the command (`dist/catalyst.pyz`), the kernel (`framework/kernel`) and a module beside it
+(`catalyst-<module>`); each of them can still be set on its own, and wins.
 """
 
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
 from typing import Any, Literal
 
-from pydantic import Field, SecretStr
+from catalyst_users import config
+from catalyst_users.errors import CatalystUsersError
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Transport = Literal["stdio", "streamable-http"]
@@ -35,6 +42,7 @@ class Settings(BaseSettings):
     keycloak_api_client_secret: SecretStr | None = None
     users_pointer: Path | None = None  # catalyst-users' --pointer: which provider it is a facade to
 
+    catalyst_root: Path | None = None  # a catalyst checkout or release: the defaults of the next three
     # how to run catalyst; in the environment a JSON list, e.g. '["python3", "/path/to/catalyst.pyz"]'
     catalyst_cli: list[str] = Field(default_factory=lambda: ["catalyst"])
     catalyst_kernel: Path | None = None  # `catalyst init --kernel`; None: the catalyst command's own
@@ -43,12 +51,41 @@ class Settings(BaseSettings):
     criterion_module: str = "software-engineering"
     criterion_module_dir: Path | None = None  # `catalyst init --module-dir`; None: catalyst searches for it
     criterion_agent: str | None = None  # `catalyst init --agent`, recorded in catalyst.toml
-    identity_issuer: str | None = None  # `catalyst init --identity-issuer`; None: this machine's catalyst-users
+    identity_issuer: str | None = None  # `catalyst init --identity-issuer`; None: catalyst-users' issuer
     templates_dir: Path | None = None  # None: the templates catalyst-mcp ships
     watch_debounce_ms: int = Field(default=500, ge=0)
 
     log_level: LogLevel = "INFO"
     log_format: LogFormat = "json"
+
+    @model_validator(mode="after")
+    def _from_catalyst_root(self) -> Settings:
+        if self.catalyst_root is None:
+            return self
+        root = self.catalyst_root.expanduser()
+        pyz, kernel = root / "dist" / "catalyst.pyz", root / "framework" / "kernel"
+        missing = [str(path) for path in (pyz, kernel) if not path.exists()]
+        if missing:
+            raise ValueError(f"catalyst_root {root} is no catalyst checkout or release: no {' and no '.join(missing)}")
+        given = self.model_fields_set
+        if "catalyst_cli" not in given:
+            self.catalyst_cli = [sys.executable, str(pyz)]
+        if "catalyst_kernel" not in given:
+            self.catalyst_kernel = kernel
+        sibling = root.parent / f"catalyst-{self.criterion_module}"
+        if "criterion_module_dir" not in given and (sibling / "module.yaml").is_file():
+            self.criterion_module_dir = sibling
+        return self
+
+    def signing_issuer(self) -> str | None:
+        """The issuer `catalyst init` signs a new criterion through: the setting, else catalyst-users' own, else
+        none (catalyst decides)."""
+        if self.identity_issuer:
+            return self.identity_issuer
+        try:
+            return config.load(self.users_overrides()).issuer
+        except CatalystUsersError:
+            return None
 
     def criterion_home(self, name: str) -> Path:
         """Where catalyst keeps the criterion `name` (`$CATALYST_HOME/projects/<name>/criterion`)."""

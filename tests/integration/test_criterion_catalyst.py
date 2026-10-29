@@ -1,6 +1,8 @@
 """A criterion created with the real catalyst command line, in a throwaway catalyst home; the identity provider's
-group is faked. Opt-in: CATALYST_MCP_IT_CATALYST names a catalyst checkout (with `dist/catalyst.pyz` built), and
-CATALYST_MCP_IT_MODULE_DIR the module's checkout; catalyst-users' settings must name a reachable provider."""
+group is faked. Opt-in: CATALYST_MCP_IT_CATALYST names a catalyst checkout (with `dist/catalyst.pyz` built and the
+module checked out beside it, as catalyst-software-engineering); catalyst-users' settings must name a reachable
+provider. Only the catalyst root is given: the command, the kernel, the module and the issuer are derived
+(mcp-ARCH-000003)."""
 
 import os
 import subprocess
@@ -17,11 +19,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from test_criterion import FakeDirectory, authorized
 
 CATALYST = os.environ.get("CATALYST_MCP_IT_CATALYST")
-MODULE_DIR = os.environ.get("CATALYST_MCP_IT_MODULE_DIR")
 
 pytestmark = [
     pytest.mark.integration,
-    pytest.mark.skipif(not (CATALYST and MODULE_DIR), reason="needs CATALYST_MCP_IT_CATALYST and _MODULE_DIR"),
+    pytest.mark.skipif(not CATALYST, reason="needs CATALYST_MCP_IT_CATALYST"),
 ]
 
 
@@ -29,12 +30,9 @@ async def test_a_criterion_made_with_catalyst_passes_its_check(tmp_path: Path, m
     catalyst = Path(CATALYST or "")
     monkeypatch.setenv("CATALYST_USERS_HOME", str(Path.home() / ".catalyst" / "users"))
     settings = Settings(
-        catalyst_cli=[sys.executable, str(catalyst / "dist" / "catalyst.pyz")],
+        catalyst_root=catalyst,
         catalyst_home=tmp_path / "home",
         projects_root=tmp_path / "projects",
-        catalyst_kernel=catalyst / "framework" / "kernel",
-        criterion_module_dir=Path(MODULE_DIR or ""),
-        identity_issuer=os.environ.get("CATALYST_MCP_IT_ISSUER", "http://localhost:8080/realms/catalyst"),
     )
     service = CriterionService(CatalystCli.from_settings(settings), FakeDirectory(), settings)  # type: ignore[arg-type]
     made = await service.create(await authorized("it-demo"), "it-demo", {"naming": {"max": 40}}, "alice")
