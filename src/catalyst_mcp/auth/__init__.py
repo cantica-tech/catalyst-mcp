@@ -9,7 +9,7 @@ from catalyst_mcp.auth.actor import (
     TokenResolver,
 )
 from catalyst_mcp.auth.gate import AuthorizationMismatchError, AuthorizedAction, DeniedError, Gate
-from catalyst_mcp.auth.permissions import Action, Decision, DenyAll, Permissions
+from catalyst_mcp.auth.permissions import Action, Decision, DenyAll, Permissions, StdioOnly
 
 __all__ = [
     "Action",
@@ -25,5 +25,6 @@ __all__ = [
     "Permissions",
     "PinnedResolver",
     "SessionResolver",
+    "StdioOnly",
     "TokenResolver",
 ]

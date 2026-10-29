@@ -30,6 +30,10 @@ authorization gate every write goes through, its audit log, and the tool surface
   catalyst's rules (fw-IDENTITY-000002). Over HTTP, the bearer token, introspected at the provider. A watch acts as
   the identity that started it; if that identity cannot be resolved when the watch triggers, the update is
   denied. A commit's git author is recorded but never authorizes anything.
+- **Read-only over HTTP** (the owner's decision of 2026-10-29, mcp-AUTHZ-000004). The caller is verified by its
+  token, but catalyst would sign and catalyst-users would act as the server's own identity. So over HTTP
+  `StdioOnly` refuses every write and every read of people, logged as any decision; templates and the list of
+  watches stay readable. Over stdio everything works. To revisit once catalyst can sign for a verified caller.
 
 ## Watchers
 
@@ -84,6 +88,7 @@ change carrying its signer.
 ```text
 src/catalyst_mcp/
   server.py            the MCP server; stdio by default, --transport streamable-http
+  services.py          what the tools share: directory, gate, the transport's actor, the services
   settings.py          CATALYST_MCP_* (pydantic-settings)
   log.py               structured, redacted logging on standard error
   tools/               thin tool functions: watch, criteria, templates, users
@@ -117,6 +122,8 @@ tests/                 unit tests with the provider mocked; one Keycloak testcon
    `create_criterion`'s arguments (`name`, `rules`, `owner`, `users`) with `${param}` placeholders and is created
    exactly as `create_criterion` creates. The shipped catalog is `src/catalyst_mcp/templates/catalog/`, inside the
    package so a wheel carries it; `CATALYST_MCP_TEMPLATES_DIR` names another directory of the same layout.
-7. The final tool wiring.
+7. The final tool wiring — done (REQ-000006). `services.py` holds what the tools share; each writing tool asks the
+   gate, then its service; failures are tool errors naming their cause. Over HTTP the token verifier guards every
+   request and the server only reads. The watches stop with the server.
 
 Each step ends with `ruff check`, `ruff format --check`, `pyright` and `pytest`.
