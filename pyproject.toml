@@ -1,6 +1,6 @@
 [project]
 name = "catalyst-mcp"
-version = "0.2.0"
+version = "0.3.0"
 description = "An MCP server that keeps catalyst criteria in step with their git repositories: watchers, criteria, templates and users, every write authorized against the actor's identity"
 readme = "README.md"
 license = "Apache-2.0"
