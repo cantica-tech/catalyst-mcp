@@ -17,6 +17,7 @@ from catalyst_mcp.criterion import (
     InvalidCriterionError,
     StubSchema,
 )
+from catalyst_mcp.criterion.schema import V1, current_schema
 from catalyst_mcp.criterion.service import RULES_FILE
 from catalyst_mcp.iam import IamError
 from catalyst_mcp.settings import Settings
@@ -134,6 +135,36 @@ def test_the_stub_schema() -> None:
     ]
 
 
+def test_schema_v1_accepts_naming_and_branches_and_nothing_else() -> None:
+    schema = current_schema()
+    assert schema.id == V1["$id"]
+    valid = {"id": "c1", "name": "C 1", "rules": {"naming": {"max_length": 40}, "branches": ["main", "dev"]}}
+    assert schema.validate(valid) == []
+    assert schema.validate({"id": "mcp-trial", "name": "mcp-trial", "rules": {}}) == []  # the live trial's
+    assert schema.validate(
+        {"id": "Bad/Name", "name": "x", "rules": {"naming": {"max_length": "40"}, "branches": [1], "other": {}}}
+    ) == [
+        "id: 'Bad/Name' does not match '^[a-z0-9][a-z0-9._-]{0,62}$'",
+        "rules: Additional properties are not allowed ('other' was unexpected)",
+        "rules/branches/0: 1 is not of type 'string'",
+        "rules/naming/max_length: '40' is not of type 'integer'",
+    ]
+
+
+async def test_a_criterion_kept_under_the_stub_stays_valid(service: CriterionService, settings: Settings) -> None:
+    v0_rules = {"anything": {"the": "stub took"}}  # v1 refuses this key
+    old = CriterionService(service.cli, service.directory, settings, StubSchema())
+    await old.create(await authorized(), "c1", v0_rules, "alice")
+    kept = json.loads((settings.criterion_home("c1") / RULES_FILE).read_text())
+    assert kept["$schema"] == StubSchema.id
+    again = await service.create(await authorized(), "c1", v0_rules, "alice")  # under v1, the same document
+    assert again.unchanged
+    with pytest.raises(InvalidCriterionError, match="'other' was unexpected"):
+        await service.create(await authorized(), "c1", {"other": 1}, "alice")  # a different one is checked by v1
+    with pytest.raises(InvalidCriterionError, match="'anything' was unexpected"):
+        await service.create(await authorized("c2"), "c2", v0_rules, "alice")  # and so is a new criterion
+
+
 # --- the catalyst command line -----------------------------------------------------------------------------------
 
 
@@ -187,7 +218,7 @@ async def test_create_makes_everything_in_order(
     assert cli.calls[0][2][:2] == ("c1", "software-engineering")
     assert cli.calls[1][2] == ([".criterion/catalyst-mcp/criterion.json"],)
     kept = json.loads((settings.criterion_home("c1") / RULES_FILE).read_text())
-    assert kept == {"$schema": StubSchema.id, "id": "c1", "name": "c1", "rules": RULES}
+    assert kept == {"$schema": V1["$id"], "id": "c1", "name": "c1", "rules": RULES}
     assert directory.groups == {"c1": ["alice"]}
 
 
@@ -325,7 +356,7 @@ async def test_what_exists_as_another_criterion_is_refused(
 
     await service.create(await authorized("c2"), "c2", RULES, "alice")
     with pytest.raises(CriterionExistsError, match="exists with other rules"):
-        await service.create(await authorized("c2"), "c2", {"other": {}}, "alice")
+        await service.create(await authorized("c2"), "c2", {"branches": ["main"]}, "alice")
 
     repo = git_repo(tmp_path / "app")
     (repo / "catalyst.toml").write_text('project_name = "elsewhere"\n')

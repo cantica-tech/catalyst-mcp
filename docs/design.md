@@ -68,8 +68,10 @@ own (mcp-ARCH-000003, REQ-000008). Found in the first live trial.
 
 ## Pending inputs (not invented)
 
-- The criterion JSON schema: `criterion/schema.py` holds a `CriterionSchema` protocol and a stub (`id`, `name`,
-  `rules: dict`); nothing else assumes its shape.
+- The criterion JSON schema — given 2026-10-30, adopted as v1 to be extended in later versions (REQ-000009):
+  `rules` may hold `naming` (`max_length` an integer) and `branches` (a list of strings). `criterion/schema.py` keeps
+  every version behind the `CriterionSchema` protocol; a criterion kept under the stub (v0) stays valid. The rules are
+  kept as JSON, not mapped to catalyst rules.
 - The Keycloak roles and their mapping — given 2026-10-29: `RoleMapping` (REQ-000007), over the realm's existing
   `catalyst-admin` role and catalyst-users' criterion admins.
 

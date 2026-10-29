@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 — 2026-10-30
+
+- The criterion schema v1 (REQ-000009): `rules` may hold `naming` (`max_length` an integer) and `branches` (a list of
+  strings), and nothing else; later versions extend it. The rules stay kept as JSON, not mapped to catalyst rules.
+- Criteria kept under the stub stay valid as v0: repeating such a create with the same rules changes nothing; new
+  criteria and changed rules are checked by v1.
+
 ## 0.2.0 — 2026-10-30
 
 The first working release. Every tool works over stdio; over streamable HTTP the server only reads.
