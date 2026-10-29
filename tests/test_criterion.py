@@ -198,6 +198,28 @@ async def test_a_repeated_create_changes_nothing(service: CriterionService, cli:
     assert cli.verbs() == ["init", "journal"]
 
 
+class Refreshing(FakeDirectory):
+    """As catalyst-users: `add_criterion` reports what it added or refreshed, and refreshes permissions every time."""
+
+    async def add_criterion(self, name: str, admin: str | None = None) -> list[str]:
+        return [*await super().add_criterion(name, admin), f"permissions of /criteria/{name} refreshed"]
+
+
+async def test_a_repeat_is_unchanged_though_the_provider_refreshes(settings: Settings, cli: FakeCli) -> None:
+    service = CriterionService(cli, Refreshing(), settings)  # type: ignore[arg-type]
+    first = await service.create(await authorized(), "c1", RULES, "alice")
+    assert "group" in first.made
+    again = await service.create(await authorized(), "c1", RULES, "alice")
+    assert again.unchanged and again.made == ()
+
+
+async def test_a_group_that_existed_before_is_not_made_by_this_create(settings: Settings, cli: FakeCli) -> None:
+    directory = Refreshing()
+    directory.groups["c1"] = ["alice"]  # made by an earlier create whose local steps were undone
+    made = await CriterionService(cli, directory, settings).create(await authorized(), "c1", RULES, "alice")  # type: ignore[arg-type]
+    assert made.made == ("repository", "deployment", "rules")
+
+
 async def test_create_from_repo_installs_in_it_and_the_actor_owns_it(
     service: CriterionService, directory: FakeDirectory, tmp_path: Path
 ) -> None:

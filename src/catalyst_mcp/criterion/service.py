@@ -133,7 +133,7 @@ class CriterionService:
                 [f"users: {name} is not served through catalyst serve, so it has admins only; add members once it is"]
             )
         home = self.settings.criterion_home(name)
-        stored = await self._existing(repo, name, owner, document, pointer, home, new_repo)
+        stored, grouped = await self._existing(repo, name, owner, document, pointer, home, new_repo)
 
         made: list[str] = []
         undo: list[tuple[str, Callable[[], None]]] = []
@@ -158,7 +158,10 @@ class CriterionService:
             if stored is None:
                 await self._keep_rules(repo, home, document, authorized, undo, own_deployment=not pointer)
                 made.append("rules")
-            if await self.directory.add_criterion(name, admin=owner):
+            # always asked, so a half-made group is completed; made by this create only if there was none, since
+            # catalyst-users reports what it refreshed too (BUG-000001)
+            await self.directory.add_criterion(name, admin=owner)
+            if not grouped:
                 made.append("group")
         except Exception as err:
             self._undo(name, undo, err)
@@ -195,9 +198,9 @@ class CriterionService:
         pointer: dict[str, Any],
         home: Path,
         new_repo: bool,
-    ) -> dict[str, Any] | None:
-        """What already exists of this criterion (the kept rules, if any); `CriterionExistsError` when what exists
-        is not this criterion, or not with this owner and these rules."""
+    ) -> tuple[dict[str, Any] | None, bool]:
+        """What already exists of this criterion: the kept rules, if any, and whether its group does;
+        `CriterionExistsError` when what exists is not this criterion, or not with this owner and these rules."""
         if pointer and pointer.get("project_name") != name:
             raise CriterionExistsError(f"{repo} is governed by the criterion {pointer.get('project_name')}")
         if new_repo and repo.exists() and not pointer:
@@ -210,7 +213,7 @@ class CriterionService:
         stored = self._stored(home) if pointer else None
         if stored is not None and stored != document:
             raise CriterionExistsError(f"the criterion {name} exists with other rules")
-        return stored
+        return stored, group is not None
 
     @staticmethod
     def _stored(home: Path) -> dict[str, Any] | None:
