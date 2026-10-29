@@ -91,8 +91,7 @@ src/catalyst_mcp/
   iam/                 the catalyst-users wrapper (async over its standard-library core)
   criterion/           schema.py (stub), service.py, catalyst_cli.py
   watch/               manager.py, triggers.py, diff.py
-  templates/           loader.py
-templates/             versioned JSON: <name>/<version>.json
+  templates/           loader.py; catalog/<name>/<version>.json, the shipped templates (versioned JSON)
 tests/                 unit tests with the provider mocked; one Keycloak testcontainer test (marker `integration`)
 ```
 
@@ -114,7 +113,10 @@ tests/                 unit tests with the provider mocked; one Keycloak testcon
    2026-10-29: a commit trigger adopts as the verified actor; a file-change trigger refreshes the diff and writes
    nothing. Until catalyst BUG-000044 is fixed, catalyst records `--as` as given: catalyst-mcp passes only the
    identity the gate verified.
-6. The templates loader, format-agnostic until the schema lands.
+6. The templates loader, format-agnostic until the schema lands — done (REQ-000005). A template fills in
+   `create_criterion`'s arguments (`name`, `rules`, `owner`, `users`) with `${param}` placeholders and is created
+   exactly as `create_criterion` creates. The shipped catalog is `src/catalyst_mcp/templates/catalog/`, inside the
+   package so a wheel carries it; `CATALYST_MCP_TEMPLATES_DIR` names another directory of the same layout.
 7. The final tool wiring.
 
 Each step ends with `ruff check`, `ruff format --check`, `pyright` and `pytest`.

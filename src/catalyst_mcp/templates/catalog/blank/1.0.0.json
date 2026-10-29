@@ -1,0 +1,16 @@
+{
+  "name": "blank",
+  "version": "1.0.0",
+  "description": "A criterion with no rules yet, owned by the actor unless an owner is given.",
+  "parameters": {
+    "type": "object",
+    "required": ["name"],
+    "additionalProperties": false,
+    "properties": {
+      "name": {"type": "string", "description": "The criterion's name"},
+      "owner": {"type": ["string", "null"], "default": null, "description": "Its owner; the actor when null"},
+      "users": {"type": "array", "items": {"type": "string"}, "default": [], "description": "Its members"}
+    }
+  },
+  "criterion": {"name": "${name}", "rules": {}, "owner": "${owner}", "users": "${users}"}
+}
