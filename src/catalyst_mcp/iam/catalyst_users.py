@@ -139,6 +139,20 @@ class CatalystUsersDirectory:
 
         return await self._run("register_user", register)
 
+    async def update_user(
+        self,
+        username: str,
+        email: str | None = None,
+        first_name: str | None = None,
+        last_name: str | None = None,
+    ) -> Person:
+        """Change the details given, only them; a changed email is no longer verified, the username never changes
+        (catalyst-users' id-DIR-000007)."""
+        return await self._run(
+            "update_user",
+            lambda: _person(self.provider().directory().update_user(username, email, first_name, last_name)),
+        )
+
     async def set_enabled(self, username: str, enabled: bool) -> Person:
         return await self._run(
             "set_enabled", lambda: _person(self.provider().directory().set_enabled(username, enabled))
