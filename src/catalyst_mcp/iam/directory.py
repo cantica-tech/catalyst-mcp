@@ -79,6 +79,13 @@ class IdentityDirectory(Protocol):
         first_name: str | None = None,
         last_name: str | None = None,
     ) -> Registered: ...
+    async def update_user(
+        self,
+        username: str,
+        email: str | None = None,
+        first_name: str | None = None,
+        last_name: str | None = None,
+    ) -> Person: ...
     async def set_enabled(self, username: str, enabled: bool) -> Person: ...
 
     async def roles(self) -> list[Role]: ...

@@ -32,6 +32,7 @@ class FakeDirectory:
         self.granted: list[tuple[str, str]] = []
         self.threads = threads
         self.race: User | None = None  # created by someone else between the lookup and the create
+        self.updates: list[tuple[str, Any, Any, Any]] = []
 
     def _seen(self) -> None:
         self.threads.append(threading.get_ident())
@@ -58,6 +59,13 @@ class FakeDirectory:
 
     def set_enabled(self, username: str, enabled: bool) -> User:
         self.users[username] = replace(self.user(username), enabled=enabled)
+        return self.users[username]
+
+    def update_user(self, username: str, email=None, first_name=None, last_name=None) -> User:
+        self.updates.append((username, email, first_name, last_name))
+        found = self.user(username)
+        name = " ".join(p for p in (first_name, last_name) if p) or found.name
+        self.users[username] = replace(found, email=email if email is not None else found.email, name=name)
         return self.users[username]
 
     def user_groups(self, username: str) -> list[str]:
@@ -152,6 +160,17 @@ async def test_a_person_is_disabled_never_deleted(directory: CatalystUsersDirect
     assert "bob" in provider.dir.users
     assert (await directory.set_enabled("bob", True)).enabled is True
     assert not hasattr(directory, "delete_user")
+
+
+async def test_a_persons_details_change_through_the_facade(
+    directory: CatalystUsersDirectory, provider: FakeProvider
+) -> None:
+    await directory.register_user("bob", email="bob@example.org")
+    changed = await directory.update_user("bob", email="robert@example.org", first_name="Robert")
+    assert (changed.email, changed.name) == ("robert@example.org", "Robert")
+    assert provider.dir.updates == [("bob", "robert@example.org", "Robert", None)]
+    with pytest.raises(IamNotFoundError, match="update_user: not found"):
+        await directory.update_user("nobody", email="n@example.org")
 
 
 async def test_people_roles_and_groups(directory: CatalystUsersDirectory, provider: FakeProvider) -> None:

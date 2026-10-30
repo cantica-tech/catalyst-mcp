@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.0 — 2026-10-30
+
+- `update_user` changes a person's email and names (REQ-000010), only those given, through catalyst-users 0.8.0
+  (`update_user`, id-DIR-000007), with `user.update`; a changed email is no longer verified, and the username never
+  changes. It still enables or disables a person, in the same call if asked, each change authorized on its own.
+- catalyst-users 0.8.0.
+
 ## 0.3.0 — 2026-10-30
 
 - The criterion schema v1 (REQ-000009): `rules` may hold `naming` (`max_length` an integer) and `branches` (a list of

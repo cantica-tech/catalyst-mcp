@@ -19,7 +19,7 @@ from catalyst_mcp.services import Services
 from catalyst_mcp.tools import READ_ONLY, WRITE, tool_errors
 
 Username = Annotated[str, Field(description="The person's username")]
-Unchangeable = Annotated[str | None, Field(description="Not changeable yet: catalyst-users cannot change it")]
+Detail = Annotated[str | None, Field(description="Left unchanged when omitted")]
 CRITERIA = "/criteria/"
 
 
@@ -50,22 +50,25 @@ def register(app: MCPServer, services: Services) -> None:
     @app.tool(annotations=WRITE)
     async def update_user(
         username: Username,
-        email: Unchangeable = None,
-        first_name: Unchangeable = None,
-        last_name: Unchangeable = None,
+        email: Detail = None,
+        first_name: Detail = None,
+        last_name: Detail = None,
         enabled: Annotated[bool | None, Field(description="Enable or disable; unchanged when omitted")] = None,
     ) -> dict[str, Any]:
-        """Enable or disable a person. catalyst-users cannot change a person's email or name yet, so giving one is
-        refused."""
+        """Change a person's email and names (only those given; a changed email is no longer verified, the username
+        never changes), and enable or disable them."""
         with tool_errors("update_user"):
-            given = [k for k, v in (("email", email), ("first_name", first_name), ("last_name", last_name)) if v]
-            if given:
-                raise ToolError(f"update_user: catalyst-users cannot change a person's {', '.join(given)} yet")
-            if enabled is None:
+            details = email is not None or first_name is not None or last_name is not None
+            if not details and enabled is None:
                 await reading()
                 return person(await services.directory.get_user(username))
+            if details:
+                await services.authorize(Action.USER_UPDATE)
+                updated = await services.directory.update_user(username, email, first_name, last_name)
+                if enabled is None:
+                    return person(updated)
             await services.authorize(Action.USER_UPDATE if enabled else Action.USER_DISABLE)
-            return person(await services.directory.set_enabled(username, enabled))
+            return person(await services.directory.set_enabled(username, enabled is True))
 
     @app.tool(annotations=ToolAnnotations(destructive_hint=True, idempotent_hint=True, open_world_hint=False))
     async def delete_user(username: Username) -> dict[str, Any]:

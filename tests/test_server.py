@@ -105,6 +105,13 @@ class Directory:
         self.people.setdefault(username, Person(username, None, username, True))
         return Registered(self.people[username], created)
 
+    async def update_user(self, username: str, email=None, first_name=None, last_name=None) -> Person:
+        self._call("update_user")
+        p = self.people[username]
+        name = " ".join(x for x in (first_name, last_name) if x) or p.name
+        self.people[username] = Person(p.username, email if email is not None else p.email, name, p.enabled)
+        return self.people[username]
+
     async def set_enabled(self, username: str, enabled: bool) -> Person:
         self._call("set_enabled")
         p = self.people[username]
@@ -267,11 +274,20 @@ async def test_the_people_tools_reach_the_directory(tmp_path: Path) -> None:
     ]
 
 
+async def test_update_user_changes_details_and_enabled_each_authorized(tmp_path: Path) -> None:
+    shared = services(tmp_path)
+    app = build(shared.settings, shared)
+    changed = await call(app, "update_user", {"username": "bob", "email": "b2@example.org", "last_name": "Z"})
+    assert changed["email"] == "b2@example.org" and changed["enabled"] is True
+    both = await call(app, "update_user", {"username": "bob", "first_name": "Rob", "enabled": False})
+    assert both["enabled"] is False
+    assert shared.directory.calls[-2:] == ["update_user", "set_enabled"]  # type: ignore[attr-defined]
+    assert asked(shared) == [(Action.USER_UPDATE, None), (Action.USER_UPDATE, None), (Action.USER_DISABLE, None)]
+
+
 async def test_what_catalyst_users_cannot_do_is_refused_before_the_gate(tmp_path: Path) -> None:
     shared = services(tmp_path)
     app = build(shared.settings, shared)
-    with pytest.raises(ToolError, match="cannot change a person's email, last_name"):
-        await app.call_tool("update_user", {"username": "bob", "email": "x@y", "last_name": "Z"})
     with pytest.raises(ToolError, match="no role is granted within criterion c1"):
         await app.call_tool("assign_role", {"username": "bob", "role": "dev", "criterion_id": "c1"})
     assert asked(shared) == []
