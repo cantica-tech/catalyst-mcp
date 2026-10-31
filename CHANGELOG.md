@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.1 — 2026-10-31
+
+- catalyst-users 0.10.0 (from 0.8.0); the locked dependencies upgraded. No change to any tool.
+- The watch's integration test adopts as the identity resolved as over stdio (the one logged in, else the system
+  account): since kernel 0.119.1 (catalyst BUG-000044) catalyst signs only as an identity it verifies itself.
+- `docs/design.md`: steps 2 and 5 and D5 no longer say `update_user` cannot change details or that BUG-000044 is open.
+
 ## 0.4.0 — 2026-10-30
 
 - `update_user` changes a person's email and names (REQ-000010), only those given, through catalyst-users 0.8.0
