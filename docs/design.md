@@ -13,7 +13,7 @@ authorization gate every write goes through, its audit log, and the tool surface
 | D2 | A criterion is a **group** in one realm (`/criteria/<name>`), not a realm of its own | one person, one account and single sign-on across criteria; no server-admin credential; the group name is as unique as a realm name. This is catalyst-users' model already |
 | D3 | IAM through catalyst-users, used as a library | catalyst signs through it; it acts with the caller's own token and holds no admin secret |
 | D4 | Repository `cantica-tech/catalyst-mcp`, on the cantica-tech standard (`.standards/`, ruff 0.16.10) | |
-| D5 | `catalyst journal adopt` must sign with the verified identity, never the git author: catalyst BUG-000044 | the watcher adopts hand-made commits and needs a trustworthy actor |
+| D5 | `catalyst journal adopt` must sign with the verified identity, never the git author: catalyst BUG-000044, fixed in kernel 0.119.1 | the watcher adopts hand-made commits and needs a trustworthy actor |
 
 `delete_user` disables a person and never deletes them: what they signed keeps naming them (catalyst's L7).
 
@@ -116,7 +116,7 @@ tests/                 unit tests with the provider mocked; one Keycloak testcon
 1. Settings and the server skeleton, every tool's signature — done in 0.1.0.
 2. The catalyst-users wrapper (`iam/`): people, roles, criteria and their members, off the event loop — done
    (REQ-000001). A criterion's membership is only read there: catalyst changes it and records each change.
-   catalyst-users cannot change a person's email or name yet, so `update_user` can only enable or disable.
+   Since catalyst-users 0.8.0 `update_user` also changes a person's email and names (REQ-000010).
 3. The auth layer (`auth/`): actor resolution (session, system account, HTTP token, a watch's pinned identity),
    `permissions.py` with `DenyAll`, the gate and its audit log, the HTTP token verifier — done (REQ-000002). The
    services require an `AuthorizedAction` as they land; wiring the verifier into the HTTP transport is step 7.
@@ -127,8 +127,9 @@ tests/                 unit tests with the provider mocked; one Keycloak testcon
    Members are refused for a criterion not served through `catalyst serve`: catalyst records members only there.
 5. The watcher and git diff, authorizing through the gate — done (REQ-000004). The owner's decisions of
    2026-10-29: a commit trigger adopts as the verified actor; a file-change trigger refreshes the diff and writes
-   nothing. Until catalyst BUG-000044 is fixed, catalyst records `--as` as given: catalyst-mcp passes only the
-   identity the gate verified.
+   nothing. catalyst-mcp passes only the identity the gate verified as `--as`, and since kernel 0.119.1
+   (catalyst BUG-000044) catalyst signs only as an identity it verifies itself: the one logged in, or the machine's
+   system account.
 6. The templates loader, format-agnostic until the schema lands — done (REQ-000005). A template fills in
    `create_criterion`'s arguments (`name`, `rules`, `owner`, `users`) with `${param}` placeholders and is created
    exactly as `create_criterion` creates. The shipped catalog is `src/catalyst_mcp/templates/catalog/`, inside the

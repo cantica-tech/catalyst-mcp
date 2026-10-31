@@ -4,4 +4,4 @@ It orchestrates: criteria are written through the catalyst command line, people 
 What it owns is the watcher, the authorization gate every write goes through, and the tool surface.
 """
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
