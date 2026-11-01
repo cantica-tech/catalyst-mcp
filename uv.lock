@@ -39,7 +39,7 @@ wheels = [
 
 [[package]]
 name = "catalyst-mcp"
-version = "0.4.1"
+version = "0.4.2"
 source = { editable = "." }
 dependencies = [
     { name = "anyio" },
@@ -62,7 +62,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "anyio", specifier = ">=4.5" },
-    { name = "catalyst-users", git = "https://github.com/cantica-tech/catalyst-users?rev=0.10.0" },
+    { name = "catalyst-users", git = "https://github.com/cantica-tech/catalyst-users?rev=0.11.0" },
     { name = "jsonschema", specifier = ">=4.23" },
     { name = "mcp", specifier = ">=2.3,<3" },
     { name = "pydantic", specifier = ">=2.11" },
@@ -80,8 +80,8 @@ dev = [
 
 [[package]]
 name = "catalyst-users"
-version = "0.10.0"
-source = { git = "https://github.com/cantica-tech/catalyst-users?rev=0.10.0#f89c45bdfe38c4ca10f0ecdc6c32cfcf4c369ef4" }
+version = "0.11.0"
+source = { git = "https://github.com/cantica-tech/catalyst-users?rev=0.11.0#3cd6442f0a621f1febc7576ed0c4556868d8e945" }
 
 [[package]]
 name = "cffi"

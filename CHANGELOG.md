@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.2 — 2026-11-01
+
+- catalyst-users 0.11.0 (from 0.10.0): loopback issuers matched as one (`config.same_issuer`, `config.system_pointer`),
+  `login --password`, global options after the command. No change to any tool, and none needed in this code.
+  catalyst-users 0.11.1 (a Windows password command keeps its backslashes) follows once it is released.
+
 ## 0.4.1 — 2026-10-31
 
 - catalyst-users 0.10.0 (from 0.8.0); the locked dependencies upgraded. No change to any tool.
